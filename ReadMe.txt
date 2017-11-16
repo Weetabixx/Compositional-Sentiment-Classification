@@ -8,9 +8,14 @@ wget http://nlp.stanford.edu/software/stanford-parser-full-2015-04-20.zip
 unzip stanford-ner-2015-04-20.zip
 unzip stanford-parser-full-2015-04-20.zip
 unzip stanford-postagger-full-2015-04-20.zip
+
 # replace /home/path/to/stanford/tools/ with where the files are downloaded/installed
 export STANFORDTOOLSDIR=/home/path/to/stanford/tools/
 
 export CLASSPATH=$STANFORDTOOLSDIR/stanford-postagger-full-2015-04-20/stanford-postagger.jar:$STANFORDTOOLSDIR/stanford-ner-2015-04-20/stanford-ner.jar:$STANFORDTOOLSDIR/stanford-parser-full-2015-04-20/stanford-parser.jar:$STANFORDTOOLSDIR/stanford-parser-full-2015-04-20/stanford-parser-3.5.2-models.jar
 
 export STANFORD_MODELS=$STANFORDTOOLSDIR/stanford-postagger-full-2015-04-20/models:$STANFORDTOOLSDIR/stanford-ner-2015-04-20/classifiers
+
+
+if there is an error: NLTK was unable to find stanford...
+	then the export enviroment variables should be added to the .bashrc file
