@@ -19,3 +19,5 @@ export STANFORD_MODELS=$STANFORDTOOLSDIR/stanford-postagger-full-2015-04-20/mode
 
 if there is an error: NLTK was unable to find stanford...
 	then the export enviroment variables should be added to the .bashrc file
+
+the instructions for these instalations were taken from stackoverflow, for more details see https://stackoverflow.com/questions/13883277/stanford-parser-and-nltk from the second answer as the first does no longer work
