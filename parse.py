@@ -20,10 +20,11 @@ def tagtree(tree,taggedlistpairs=[]):  # traverses tree and returns a list of ta
 	for subtree in tree:
 		if type(subtree) == Tree:  # if not a leaf
 			sub = tagtree(subtree,taggedlistpairs)
-			if sub[1] == 0:  # if a leaf is returned
-				sub[1] = subtree.label()
-				tag = (sub[0], sub[1])
-				taggedlistpairs.append(sub)
+			if len(sub) >= 2:
+				if sub[1] == 0:  # if a leaf is returned
+					sub[1] = subtree.label()
+					tag = (sub[0], sub[1])
+					taggedlistpairs.append(sub)
 		else:  # if leaf node
 			return [subtree, 0]
 	return taggedlistpairs
@@ -37,7 +38,7 @@ sample = list(parser.raw_parse(text))  # test some functions with an input
 # sample += list(parser.raw_parse(text2))
 
 prettyprint(sample)
-traverse(sample)
+#traverse(sample)
 tagged = tagtree(sample)
 print(tagged)
 
@@ -50,5 +51,8 @@ print(tagged)
 #      increase negative counter for word-label pair
 #    if sentence positive:
 #      increase positive counter for word-label pair
-#  train neural net for each label?????
-#  create strong general inteligence AI and get it to finish this assessment
+#  use word-label pairs for bigrams?
+#  compare to traditional bayes
+#
+#
+#  for each tree if 
