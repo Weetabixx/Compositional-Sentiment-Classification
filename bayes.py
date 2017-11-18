@@ -121,6 +121,14 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 
 #---------------------------End Training ----------------------------------
 
+def testSententce(sentence):
+	Words = re.findall(r"[\w']+", sentence)
+	score=0
+	for word in Words:
+		if word in sentimentDictionary:
+			score+=sentimentDictionary[word]
+			print(word + " is " + str(sentimentDictionary[word]))
+	print(score)
 
 #---------- Main Script --------------------------
 
@@ -139,4 +147,6 @@ pWord={}    # p(W)
 
 #build conditional probabilities using training data
 trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
+testsent = input()
+testSententce(testsent)
 
