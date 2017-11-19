@@ -2,6 +2,7 @@ from nltk.parse.stanford import StanfordParser  # this does not work in pycharm 
 from nltk.tree import *
 import sys, os, re, random, math, collections, itertools, time, pickle
 
+PRINT_ERRORS=0
 
 #----------------------ParseTreeFunctions------------------------------------------
 
@@ -31,6 +32,8 @@ def tagtree(tree,taggedlistpairs=[]):  # traverses tree and returns a list of ta
 			return [subtree, 0]
 	return taggedlistpairs
 
+def bubbleSentiment(tree):
+	pass
 
 
 #----------------------------getInputFunctions-----------------------------------------
@@ -107,9 +110,10 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 	# initialises parser that creates parse trees 
 	stanParser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
 
-
+	print("calculating frequencies...")
 	#iterate through each sentence/sentiment pair in the training data
 	#this is very slow and why parsing is precomputed probably be pre-computed and then saved to a file for use later
+	#maybe the frequencies should be precomputed also for optimisation purposes
 	for sentenceSentimentPair in sentencesTrain:
 		sentiment = sentenceSentimentPair[1]
 		sentenceTree = sentenceSentimentPair[0]
@@ -142,6 +146,10 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 					freqNegative[word] = 1
 				else:
 					freqNegative[word] += 1
+
+		sys.stdout.write('\r' + str(allWordsTot) + " words analysed")
+		sys.stdout.flush()
+	print("")
 
 
 	for word in dictionary:
@@ -280,11 +288,28 @@ pWord={}    # p(W)
 
 
 #build conditional probabilities using training data
-trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
+if len(sys.argv) < 2:
+	try:
+		with open('pWords.pkl', 'rb') as f:  # open precomputed parse trees
+			pWordPos, pWordNeg, pWord = pickle.load(f)
+	except:
+		print("could not load pre-computed frequencies, exiting...")
+		sys.exit()
+else:
+	if sys.argv[1] == "-precompute":
+		trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
+		with open('pWords.pkl', 'wb') as f:
+			pickle.dump([pWordPos, pWordNeg, pWord], f)
+	else:
+		print("don't understand arguments, exiting...")
+		sys.exit()
+
+
+#trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
 
 #test bayes and find p(W|FalsePositive) p(W|Falsenegative)
 pWordReversePos={}
-pWordReverseNeg={}
+pWordReverseNeg={}  # these could maybe also be pre-computed
 testBayes(sentencesTest,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg)
 
 
@@ -303,7 +328,7 @@ sample = list(parser.raw_parse(text))  # test some functions with an input
 prettyprint(sample)
 #traverse(sample)
 tagged = tagtree(sample)
-print(tagged)
+#print(tagged)
 testSententce(text)
 
 
