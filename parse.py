@@ -34,6 +34,18 @@ def tagtree(tree,taggedlistpairs=[]):  # traverses tree and returns a list of ta
 
 def bubbleSentiment(tree):
 	pass
+	for subtree in tree:
+		if type(subtree) == Tree:  # if not a leaf
+
+			print(("  "*level) + str(subtree.label()) + "(" )
+			traverse(subtree,(level+1))
+			print(("  "*level) + ")")
+		else:  # if leaf node, calculate sentiment of word
+			prob=pWordPos[subtree] # p(W|Positive)
+			pWordNeg[subtree] # p(W|Negative)
+			pWord[subtree]   # p(W) 
+			print(("  "*level) + subtree)
+	return(sentimentOut, combineTactic)  # sentimentOut can be -1, 0 or 1. combineTactic can be "D", "RP", "RN" or "R"
 
 
 #----------------------------getInputFunctions-----------------------------------------
@@ -94,7 +106,7 @@ def readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia):
 		sentencesNokia.append((negNokiaTrees[i],"negative"))
 
 #----------------------------BayesFunctions--------------------------------------------
-
+#TODO: remove stop words
 #TODO: need to change bayes to use parse tree and implement a re-train function
 #calculates p(W|Positive), p(W|Negative) and p(W) for all words in training data
 #TODO: W --> Word__PartOfSpeechTag
@@ -180,8 +192,19 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 #  pWord is dictionary storing p(word)
 #  pPos is a real number containing the fraction of positive reviews in the dataset
 #TODO: select sentences that are wrong and calculate P(W|Reverse-positives) and P(W|Reverse-negatives)
-def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordReversePos, pWordReverseNeg):
+def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordReversePos, pWordReverseNeg, pWordR):
 	pNeg=1-pPos
+
+	#variables for finding sentiment reversing words
+	reverseposFeatures = [] # [] initialises a list [array]
+	reversenegFeatures = [] 
+	freqFalsePositive = {} # {} initialises a dictionary [hash function]
+	freqFalseNegative = {}
+	freqWord = {}
+	dictionary = {}
+	reversePosWordsTot = 0
+	reverseNegWordsTot = 0
+	allWordsTot = 0
 
 	#These variables will store results (you do not need them)
 	total=0
@@ -192,6 +215,8 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordRev
 	totalnegpred=0
 	correctpos=0
 	correctneg=0
+
+	print("analysing frequency of sentiment reversing words")
 
 	#for each sentence, sentiment pair in the dataset
 	for sentenceSentimentPair in sentencesTest:
@@ -225,7 +250,7 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordRev
 				correct+=1
 				correctpos+=1
 				totalpospred+=1
-			else:  # in case of false negative
+			else:  # in case of false negative 
 				correct+=0
 				totalnegpred+=1
 				if PRINT_ERRORS:
@@ -236,11 +261,62 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordRev
 				correct+=1
 				correctneg+=1
 				totalnegpred+=1
-			else:  # in case of false positive
+			else:  # in case of false positive  
 				correct+=0
 				totalpospred+=1
 				if PRINT_ERRORS:
 					print ("ERROR (neg classed as pos %0.2f):" %prob + taggedWords)
+
+		# find all sentiment reversing words
+		for word in taggedWords: #calculate over bigrams
+			allWordsTot += 1 # keeps count of total words in dataset
+			if not (word in dictionary):
+				dictionary[word] = 1
+			if not (word in freqWord):  #keep count of number of times word has apeared
+				freqWord[word] = 1
+			else:
+				freqWord[word] += 1
+			if sentiment=="positive" and prob<=0.5:  # false positive
+				reversePosWordsTot += 1 # keeps count of total words in false Positive class
+
+				#keep count of each word in positive context
+				if not (word in freqFalsePositive):
+					freqFalsePositive[word] = 1
+				else:
+					freqFalsePositive[word] += 1     
+			elif sentiment=="negative" and prob>0.5:  # false negative
+				reverseNegWordsTot += 1 # keeps count of total words false Negative class
+
+				#keep count of each word in positive context
+				if not (word in freqFalseNegative):
+					freqFalseNegative[word] = 1
+				else:
+					freqFalseNegative[word] += 1  
+
+		sys.stdout.write('\r' + str(allWordsTot) + " words analysed")
+		sys.stdout.flush()
+	print("")
+
+	for word in dictionary:
+		#do some smoothing so that minimum count of a word is 1
+		if not (word in freqFalseNegative):
+			freqFalseNegative[word] = 1
+		if not (word in freqFalsePositive):
+			freqFalsePositive[word] = 1
+		if reversePosWordsTot < 1:
+			reversePosWordsTot = 1
+		if reverseNegWordsTot < 1:
+			reverseNegWordsTot = 1
+
+
+		# Calculate P(W|Reverse-positives) 
+		pWordReversePos[word] = freqFalsePositive[word] / float(reversePosWordsTot)
+
+		# Calculate P(W|Reverse-negatives)  
+		pWordReverseNeg[word] = freqFalseNegative[word] / float(reverseNegWordsTot)
+
+		# Calculate p(word)
+		pWordR[word] = freqWord[word] / float(allWordsTot) 
 
 	acc=correct/float(total)
 	print (dataName + " Accuracy (All)=%0.2f" % acc + " (%d" % correct + "/%d" % total + ")\n")
@@ -261,7 +337,7 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordRev
 	print (dataName + " F-measure (Neg)=%0.2f" % f_neg + "\n")
 
 
-
+#-----------------------------Lexical aproach------------------------------------------
 
 def testSententce(sentence):
 	Words = re.findall(r"[\w']+", sentence)
@@ -288,29 +364,35 @@ pWord={}    # p(W)
 
 
 #build conditional probabilities using training data
-if len(sys.argv) < 2:
+if "-precompute" in sys.argv:
+	trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
+	with open('pWords.pkl', 'wb') as f:
+		pickle.dump([pWordPos, pWordNeg, pWord], f)
+else:
 	try:
 		with open('pWords.pkl', 'rb') as f:  # open precomputed parse trees
 			pWordPos, pWordNeg, pWord = pickle.load(f)
 	except:
 		print("could not load pre-computed frequencies, exiting...")
 		sys.exit()
-else:
-	if sys.argv[1] == "-precompute":
-		trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
-		with open('pWords.pkl', 'wb') as f:
-			pickle.dump([pWordPos, pWordNeg, pWord], f)
-	else:
-		print("don't understand arguments, exiting...")
-		sys.exit()
-
-
-#trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
 
 #test bayes and find p(W|FalsePositive) p(W|Falsenegative)
 pWordReversePos={}
-pWordReverseNeg={}  # these could maybe also be pre-computed
-testBayes(sentencesTest,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg)
+pWordReverseNeg={}
+pWordR={}
+
+
+if "-pretest" in sys.argv:
+	testBayes(sentencesTrain,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg, pWordR)
+	with open('pWordsReverse.pkl', 'wb') as f:
+		pickle.dump([pWordReversePos, pWordReverseNeg, pWordR], f)
+else:
+	try:
+		with open('pWords.pkl', 'rb') as f:  # open precomputed parse trees
+			pWordReversePos, pWordReverseNeg, pWordR = pickle.load(f)
+	except:
+		print("could not load pre-computed frequencies of sentiment reversing words, exiting...")
+		sys.exit()
 
 
 
@@ -356,4 +438,3 @@ testSententce(text)
 #  write rules on how nodes connect their sentiment 
 #
 #
-#  for each tree if 
