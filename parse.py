@@ -166,7 +166,7 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 			totSentences -= 1
 	finishTime = time.time()
 	tottime = startTime - finishTime
-	print("took "str(tottime) + " seconds to calculate parse trees for training data")
+	print("took " + str(tottime) + " seconds to calculate parse trees for training data")
 
 
 	for word in dictionary:
