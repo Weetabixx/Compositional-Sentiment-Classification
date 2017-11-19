@@ -2,8 +2,8 @@ from nltk.parse.stanford import StanfordParser  # this does not work in pycharm 
 from nltk.tree import *
 import pickle
 
-posSentencesNokia = open('nokia-pos.txt', 'r')
-negSentencesNokia = open('nokia-neg.txt', 'r')
+posSentencesNokia = open('rt-polarity.pos', 'r', encoding="ISO-8859-1")
+negSentencesNokia = open('rt-polarity.neg', 'r', encoding="ISO-8859-1")
 #initialises parser that creates parse trees 
 stanParser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
 
@@ -39,5 +39,5 @@ for sentence in negSentencesNokia:
 	print(str(parsedSentences) + "/" + str(totSentences))
 
 # Saving the objects:
-with open('precompnokiaparsetrees.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
+with open('precomppolarityparsetrees.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
 	pickle.dump([posTrees, negTrees], f)
