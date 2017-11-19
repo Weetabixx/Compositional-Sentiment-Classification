@@ -72,22 +72,22 @@ def readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia):
 	#We want to test on sentences we haven't trained on, to see how well the model generalses to previously unseen sentences
 
 	#create 90-10 split of training and test data from movie reviews, with sentiment labels    
-	for i in (len(posPolarityTrees) - 1):
+	for i in range(len(posPolarityTrees) - 1):
 		if random.randint(1,10)<2:
 			sentencesTest.append((posPolarityTrees[i],"positive"))
 		else:
 			sentencesTrain.append((posPolarityTrees[i],"positive"))
 
-	for i in (len(negPolarityTrees) - 1):
+	for i in range(len(negPolarityTrees) - 1):
 		if random.randint(1,10)<2:
 			sentencesTest.append((negPolarityTrees[i],"negative"))
 		else:
 			sentencesTrain.append((negPolarityTrees[i],"negative"))
 
 	#create Nokia Datset:
-	for i in (len(posNokiaTrees) - 1):
+	for i in range(len(posNokiaTrees) - 1):
 		sentencesNokia.append((posNokiaTrees[i],"positive"))
-	for i in (len(negNokiaTrees) - 1):
+	for i in range(len(negNokiaTrees) - 1):
 		sentencesNokia.append((negNokiaTrees[i],"negative"))
 
 #----------------------------BayesFunctions--------------------------------------------
@@ -172,7 +172,7 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 #  pWord is dictionary storing p(word)
 #  pPos is a real number containing the fraction of positive reviews in the dataset
 #TODO: select sentences that are wrong and calculate P(W|Reverse-positives) and P(W|Reverse-negatives)
-def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord,pPos):
+def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordReversePos, pWordReverseNeg):
 	pNeg=1-pPos
 
 	#These variables will store results (you do not need them)
@@ -217,22 +217,22 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord,pPos):
 				correct+=1
 				correctpos+=1
 				totalpospred+=1
-			else:
+			else:  # in case of false negative
 				correct+=0
 				totalnegpred+=1
 				if PRINT_ERRORS:
-        			print ("ERROR (pos classed as neg %0.2f):" %prob + sentence)
+					print ("ERROR (pos classed as neg %0.2f):" %prob + taggedWords)
 		else:
 			totalneg+=1
 			if prob<=0.5:
 				correct+=1
 				correctneg+=1
 				totalnegpred+=1
-			else:
+			else:  # in case of false positive
 				correct+=0
 				totalpospred+=1
 				if PRINT_ERRORS:
-					print ("ERROR (neg classed as pos %0.2f):" %prob + sentence)
+					print ("ERROR (neg classed as pos %0.2f):" %prob + taggedWords)
 
 	acc=correct/float(total)
 	print (dataName + " Accuracy (All)=%0.2f" % acc + " (%d" % correct + "/%d" % total + ")\n")
@@ -282,6 +282,12 @@ pWord={}    # p(W)
 #build conditional probabilities using training data
 trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord)
 
+#test bayes and find p(W|FalsePositive) p(W|Falsenegative)
+pWordReversePos={}
+pWordReverseNeg={}
+testBayes(sentencesTest,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg)
+
+
 
 
 #-----------------------------MAIN------------------------------------------------------
@@ -301,16 +307,16 @@ print(tagged)
 testSententce(text)
 
 
-#  open the TrainingSentences
-#  create parse tree of each sentence
+#  open the TrainingSentences  DONE
+#  create parse tree of each sentence  DONE
 #  for each tree:
-#    if word-label pair not in lexicon:
-#      add word-label pair to lexicon
+#    if word-label pair not in lexicon:  DONE
+#      add word-label pair to lexicon  DONE
 #    if sentence negative:
-#      increase negative counter for word-label pair
+#      increase negative counter for word-label pair  DONE
 #    if sentence positive:
-#      increase positive counter for word-label pair
-#  test sentences, create set of wrongly identified sentences
+#      increase positive counter for word-label pair  DONE
+#  test sentences, create set of wrongly identified sentences IN PROGRESS
 #  for each tree in sentence:
 #    if sentence is false positive:
 #      increase reverse positive count for word-label pair
