@@ -34,17 +34,61 @@ def tagtree(tree,taggedlistpairs=[]):  # traverses tree and returns a list of ta
 
 def bubbleSentiment(tree):
 	pass
+	childSentimentTactics = []
 	for subtree in tree:
 		if type(subtree) == Tree:  # if not a leaf
+			sentimenttacticPair = bubbleSentiment(subtree)
+			sentimentIn = sentimenttacticPair[0]
+			tactic = sentimenttacticPair[1]
+			if sentimentIn == 100:  # if a leaf was returned, calculate its sentiment and its combineTactic
+				print("a leaf was returned")
+				tag = str(subtree.label())
+				taggedW = tactic + "__" + tag
+				calculatedPair = calculateSentiment(taggedW)
+				return calculatedPair
+			else:  # combine all of the constituents if there is a combination to be done
+				childSentimentTactics.append(sentimenttacticPair)
+		else:  # if leaf node, return leaf and indicate its a leaf
+			tag = tree.label()
+			taggedW = subtree + "__" + tag
+			print("leaf is:" + taggedW)
+			calculatedPair = calculateSentiment(taggedW)
+			childSentimentTactics.append(calculatedPair)
+	if len(childSentimentTactics) == 1: # if there was only one child just bubble that up
+		print("only one child, " + str(childSentimentTactics))
+		return childSentimentTactics[0]
+	#  calculate overall sentiment of child nodes
+	#  check if there is a sentiment reversing tactic
+	print("combining: " + str(childSentimentTactics))
+	reversePositives = False
+	reverseNegatives = False
+	for tacticSentimentPair in childSentimentTactics:
+		if tacticSentimentPair[1] == "R":
+			reversePositives = True
+			reverseNegatives = True
+		elif tacticSentimentPair[1] == "RP":
+			reversePositives = True
+		elif tacticSentimentPair[1] == "RN":
+			reverseNegatives = True
+	#  add up all of the sentiments
+	sentimentOut = 0
+	for tacticSentimentPair in childSentimentTactics:
+		sentimentOut += tacticSentimentPair[0]
+	#  check combine tactic and adjust sentiment accordingly
+	if reverseNegatives and reversePositives:  # reverse sentiment 
+		sentimentOut *= -1
+	elif reverseNegatives:  # reverse negatives
+		sentimentOut = sentimentOut*sentimentOut
+	elif reversePositives:  # reverse positives
+		sentimentOut = sentimentOut*sentimentOut* -1
+	print("combined sentiment: " + str(sentimentOut))
 
-			print(("  "*level) + str(subtree.label()) + "(" )
-			traverse(subtree,(level+1))
-			print(("  "*level) + ")")
-		else:  # if leaf node, calculate sentiment of word
-			prob=pWordPos[subtree] # p(W|Positive)
-			pWordNeg[subtree] # p(W|Negative)
-			pWord[subtree]   # p(W) 
-			print(("  "*level) + subtree)
+	#  normalise output to either -1, 1 or 0
+	if sentimentOut >= 1:
+		sentimentOut = 1
+	elif sentimentOut <= -1:
+		sentimentOut = -1
+	combineTactic = "D"
 	return(sentimentOut, combineTactic)  # sentimentOut can be -1, 0 or 1. combineTactic can be "D", "RP", "RN" or "R"
 
 
@@ -192,7 +236,7 @@ def trainBayes(sentencesTrain, pWordPos, pWordNeg, pWord):
 #  pWord is dictionary storing p(word)
 #  pPos is a real number containing the fraction of positive reviews in the dataset
 #TODO: select sentences that are wrong and calculate P(W|Reverse-positives) and P(W|Reverse-negatives)
-def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordReversePos, pWordReverseNeg, pWordR):
+def testReverseBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordReversePos, pWordReverseNeg, pWordR):
 	pNeg=1-pPos
 
 	#variables for finding sentiment reversing words
@@ -337,6 +381,35 @@ def testBayes(sentencesTest, dataName, pWordPos, pWordNeg, pWord, pPos, pWordRev
 	print (dataName + " F-measure (Neg)=%0.2f" % f_neg + "\n")
 
 
+#uses the frequencies calculated in the test and training of bayes to decide the sentiment and combine tactic of a given tagged word
+def calculateSentiment(taggedWord):
+	sentiment = 0  #defaults
+	tactic = "D"
+
+	# calculate sentiment based on bayes approach
+	if taggedWord in pWord:
+		probPos = (pWordPos[taggedWord] * 0.5) / pWord[taggedWord]
+		probNeg = (pWordNeg[taggedWord] * 0.5) / pWord[taggedWord]
+		if probPos > 0.5:
+			sentiment = 1
+		elif probNeg > 0.5:
+			sentiment = -1
+
+	#calculate combine tactic based on bayes
+	if taggedWord in pWordR:
+		probRevPos = (pWordReversePos[taggedWord] * 0.5) / pWordR[taggedWord]
+		probRevNeg = (pWordReverseNeg[taggedWord] * 0.5) / pWordR[taggedWord]
+		if probRevPos > 0.5:
+			tactic = "RP"
+		if probRevNeg > 0.5:
+			tactic = "RN"
+		if probRevNeg > 0.5 and probRevPos > 0.5:
+			tactic = "R"
+	
+	# could replace wirh lexical approach for different results
+	return(sentiment, tactic)
+
+
 #-----------------------------Lexical aproach------------------------------------------
 
 def testSententce(sentence):
@@ -383,7 +456,7 @@ pWordR={}
 
 
 if "-pretest" in sys.argv:
-	testBayes(sentencesTrain,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg, pWordR)
+	testReverseBayes(sentencesTrain,  "Films  (Test Data, Naive Bayes)\t", pWordPos, pWordNeg, pWord, 0.5, pWordReversePos, pWordReverseNeg, pWordR)
 	with open('pWordsReverse.pkl', 'wb') as f:
 		pickle.dump([pWordReversePos, pWordReverseNeg, pWordR], f)
 else:
@@ -412,6 +485,9 @@ prettyprint(sample)
 tagged = tagtree(sample)
 #print(tagged)
 testSententce(text)
+bubbleResult = bubbleSentiment(sample)
+print("bubble result:")
+print(bubbleResult)
 
 
 #  open the TrainingSentences  DONE
