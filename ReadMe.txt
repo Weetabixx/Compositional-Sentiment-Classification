@@ -21,8 +21,10 @@ the instructions for these instalations were taken from stackoverflow, for more 
 
 running:------------------------------------------------------------------------------------
 
-python3 parse.py -precomp -pretest
-this will run the system, -precomp and -pretest are optional and should only be included in the first run of the system, or after a large update as these take some additional time, without these included the run time should be much shorter and probably less than 5 minutes
+python3 parse.py
+this will run the system, if a new data set is used you will also need to modify the precomp.py file to read the new data set and then run "python3 precomp.py" this will take a while depending on the size of the data.
+
+after the tests are run, enter a phrase or sentence to have it parsed and analysed
 
 errors:-------------------------------------------------------------------------------------
 

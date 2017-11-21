@@ -33,7 +33,6 @@ def tagtree(tree,taggedlistpairs=[]):  # traverses tree and returns a list of ta
 	return taggedlistpairs
 
 def bubbleSentiment(tree):
-	pass
 	childSentimentTactics = []
 	for subtree in tree:
 		if type(subtree) == Tree:  # if not a leaf
@@ -53,6 +52,8 @@ def bubbleSentiment(tree):
 	#print("combining: " + str(childSentimentTactics))
 	reversePositives = False
 	reverseNegatives = False
+	inMixed = False
+	combineTactic = "D"
 	for tacticSentimentPair in childSentimentTactics:
 		if tacticSentimentPair[1] == "R":
 			reversePositives = True
@@ -61,10 +62,16 @@ def bubbleSentiment(tree):
 			reversePositives = True
 		elif tacticSentimentPair[1] == "RN":
 			reverseNegatives = True
+		if tacticSentimentPair[1] == "M":
+			inMixed = True
+			combineTactic = "M"
 	#  add up all of the sentiments
 	sentimentOut = 0
+	mixed = False
 	for tacticSentimentPair in childSentimentTactics:
 		sentimentOut += tacticSentimentPair[0]
+		if sentimentOut != 0:
+			mixed = True
 	#  check combine tactic and adjust sentiment accordingly
 	if reverseNegatives and reversePositives:  # reverse sentiment 
 		sentimentOut *= -1
@@ -73,13 +80,40 @@ def bubbleSentiment(tree):
 	elif reversePositives:  # reverse positives
 		sentimentOut = sentimentOut*sentimentOut* -1
 	#print("combined sentiment: " + str(sentimentOut))
-
+	
 	#  normalise output to either -1, 1 or 0
 	if sentimentOut >= 1:
 		sentimentOut = 1
 	elif sentimentOut <= -1:
 		sentimentOut = -1
-	combineTactic = "D"
+	elif sentimentOut == 0 and mixed:  # if there was a mixed sentiment just pick one instead of neutral sentiment
+		combineTactic = "M"
+		if inMixed:  # if some of the previous inputs where mixed, ignore them in this calculation
+			sentimentOut = 0
+			mixed = False
+			for tacticSentimentPair in childSentimentTactics:
+				if tacticSentimentPair[1] != "M":  # ignore mixed inputs
+					sentimentOut += tacticSentimentPair[0]
+					if sentimentOut != 0:
+						mixed = True
+			#  check combine tactic and adjust sentiment accordingly
+			if reverseNegatives and reversePositives:  # reverse sentiment 
+				sentimentOut *= -1
+			elif reverseNegatives:  # reverse negatives
+				sentimentOut = sentimentOut*sentimentOut
+			elif reversePositives:  # reverse positives
+				sentimentOut = sentimentOut*sentimentOut* -1
+
+			#  normalise output to either -1, 1 or 0
+			if sentimentOut >= 1:
+				sentimentOut = 1
+			elif sentimentOut <= -1:
+				sentimentOut = -1
+			elif sentimentOut == 0 and mixed:  # if there was a mixed sentiment just pick one instead of neutral sentiment
+				sentimentOut = childSentimentTactics[-1][0]
+		else:
+			sentimentOut = childSentimentTactics[-1][0]
+	
 	return(sentimentOut, combineTactic)  # sentimentOut can be -1, 0 or 1. combineTactic can be "D", "RP", "RN" or "R"
 
 
@@ -139,13 +173,15 @@ def readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia):
 
 	#create 90-10 split of training and test data from movie reviews, with sentiment labels    
 	for i in range(len(posPolarityTrees) - 1):
-		if random.randint(1,10)<2:
+		#if random.randint(1,10)<2:
+		if True:
 			sentencesTest.append((posPolarityTrees[i],"positive"))
 		else:
 			sentencesTrain.append((posPolarityTrees[i],"positive"))
 
 	for i in range(len(negPolarityTrees) - 1):
-		if random.randint(1,10)<2:
+		#if random.randint(1,10)<2:
+		if True:
 			sentencesTest.append((negPolarityTrees[i],"negative"))
 		else:
 			sentencesTrain.append((negPolarityTrees[i],"negative"))
@@ -560,45 +596,20 @@ else:
 
 #-----------------------------MAIN------------------------------------------------------
 
-testLexicalCompositionalApproach(sentencesNokia, "Nokia  (Test Data, Compositional-Based)\t")
+testLexicalCompositionalApproach(sentencesNokia, "Nokia (Test Data, Compositional-Based)\t")
+testLexicalCompositionalApproach(sentencesTest, "Films (Test Data, Compositional-Based)\t")
 
 parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")  # this sets up the parser
-#text = input()
+text = input("try a sentence yourself:")
 
-#print("parsing the sentence...")
-#sample = list(parser.raw_parse(text))  # test some functions with an input
+print("parsing the sentence...")
+sample = list(parser.raw_parse(text))  # test some functions with an input
 
-# prettyprint(sample)
-# #traverse(sample)
+prettyprint(sample)
+# traverse(sample)
 # tagged = tagtree(sample)
 # print(tagged)
-# testSententce(text)
-# bubbleResult = bubbleSentiment(sample)
-# print("bubble result:")
-# print(bubbleResult)
-
-
-#  open the TrainingSentences  DONE
-#  create parse tree of each sentence  DONE
-#  for each tree:
-#    if word-label pair not in lexicon:  DONE
-#      add word-label pair to lexicon  DONE
-#    if sentence negative:
-#      increase negative counter for word-label pair  DONE
-#    if sentence positive:
-#      increase positive counter for word-label pair  DONE
-#  test sentences, create set of wrongly identified sentences IN PROGRESS
-#  for each tree in sentence:
-#    if sentence is false positive:
-#      increase reverse positive count for word-label pair
-#    if sentence is false negative:
-#      increase reverse negative count for word-label pair
-#  calculate which words pass threshhold for being labeled as reverse|reverse-negative|reverse-positive
-#
-#
-#
-#
-#  compare to traditional bayes
-#  write rules on how nodes connect their sentiment 
-#
-#
+testSententce(text)
+bubbleResult = bubbleSentiment(sample)
+print("bubble result:")
+print(bubbleResult)
