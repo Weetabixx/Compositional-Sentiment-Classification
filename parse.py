@@ -42,15 +42,15 @@ def bubbleSentiment(tree):
 		else:  # if leaf node, return leaf and sentiment tactic pair
 			tag = tree.label()
 			taggedW = subtree + "__" + tag
-			print("leaf is:" + taggedW)
+			#print("leaf is:" + taggedW)
 			calculatedPair = lexiSentiment(taggedW)
 			childSentimentTactics.append(calculatedPair)
 	if len(childSentimentTactics) == 1: # if there was only one child just bubble that up
-		print("only one child, " + str(childSentimentTactics))
+		#print("only one child, " + str(childSentimentTactics))
 		return childSentimentTactics[0]
 	#  calculate overall sentiment of child nodes
 	#  check if there is a sentiment reversing tactic
-	print("combining: " + str(childSentimentTactics))
+	#print("combining: " + str(childSentimentTactics))
 	reversePositives = False
 	reverseNegatives = False
 	for tacticSentimentPair in childSentimentTactics:
@@ -72,7 +72,7 @@ def bubbleSentiment(tree):
 		sentimentOut = sentimentOut*sentimentOut
 	elif reversePositives:  # reverse positives
 		sentimentOut = sentimentOut*sentimentOut* -1
-	print("combined sentiment: " + str(sentimentOut))
+	#print("combined sentiment: " + str(sentimentOut))
 
 	#  normalise output to either -1, 1 or 0
 	if sentimentOut >= 1:
@@ -117,10 +117,10 @@ def readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia):
 	revWordList = re.findall(r"[a-z\-']+", revDictionary.read())
 
 	revPosDictionary = open('reversePos.txt', 'r', encoding="ISO-8859-1")
-	revPosWordList = re.findall(r"[a-z\-]+", revPosDictionary.read())
+	revPosWordList = re.findall(r"[a-z\-']+", revPosDictionary.read())
 
 	revNegDictionary = open('reverseNeg.txt', 'r', encoding="ISO-8859-1")
-	revNegWordList = re.findall(r"[a-z\-]+", revNegDictionary.read())
+	revNegWordList = re.findall(r"[a-z\-']+", revNegDictionary.read())
 
 	for i in posWordList:
 	    sentimentDictionary[i] = 1
@@ -441,6 +441,72 @@ def testSententce(sentence):
 			score+=sentimentDictionary[word]
 			print(word + " is " + str(sentimentDictionary[word]))
 	print(score)
+	if score > 0 :
+		return "positive"
+	if score < 0 :
+		return "negative"
+	if score == 0 :
+		return "neutral"
+
+def testLexicalCompositionalApproach(testSet, dataName):  # test the efficiency of a lexical approach given a set of sentence-sentiment pairs
+	total=0
+	correct=0
+	totalpos=0
+	totalpospred=0
+	totalneg=0
+	totalnegpred=0
+	correctpos=0
+	correctneg=0
+
+	print("testing sentences...")
+	for sentenceSentimentPair in testSet:
+		total += 1
+		actualSentiment = sentenceSentimentPair[1]
+		sentence = sentenceSentimentPair[0]
+		sentiment = bubbleSentiment(sentence)  # does the actual calculation
+		sentiment = sentiment[0]
+		if actualSentiment == "positive":
+			totalpos += 1
+			if sentiment == 1:
+				correct += 1
+				correctpos += 1
+				totalpospred += 1
+			elif sentiment == -1:
+				totalnegpred += 1
+		if actualSentiment == "negative":
+			totalneg += 1
+			if sentiment == -1:
+				correct += 1
+				correctneg += 1
+				totalnegpred += 1
+			elif sentiment == 1:
+				totalpospred += 1
+		sys.stdout.write('\r' + str(total) + " sentences analysed")
+		sys.stdout.flush()
+	print("")
+
+	acc=correct/float(total)
+	print (dataName + " Accuracy (All)=%0.2f" % acc + " (%d" % correct + "/%d" % total + ")\n")
+
+	precision_pos=correctpos/float(totalpospred)
+	recall_pos=correctpos/float(totalpos)
+	precision_neg=correctneg/float(totalnegpred)
+	recall_neg=correctneg/float(totalneg)
+	f_pos=2*precision_pos*recall_pos/(precision_pos+recall_pos);
+	f_neg=2*precision_neg*recall_neg/(precision_neg+recall_neg);
+
+	print (dataName + " Precision (Pos)=%0.2f" % precision_pos + " (%d" % correctpos + "/%d" % totalpospred + ")")
+	print (dataName + " Recall (Pos)=%0.2f" % recall_pos + " (%d" % correctpos + "/%d" % totalpos + ")")
+	print (dataName + " F-measure (Pos)=%0.2f" % f_pos)
+
+	print (dataName + " Precision (Neg)=%0.2f" % precision_neg + " (%d" % correctneg + "/%d" % totalnegpred + ")")
+	print (dataName + " Recall (Neg)=%0.2f" % recall_neg + " (%d" % correctneg + "/%d" % totalneg + ")")
+	print (dataName + " F-measure (Neg)=%0.2f" % f_neg + "\n")
+
+
+
+
+
 
 #----------------------------VariableInitialisations-----------------------------------
 
@@ -452,8 +518,6 @@ sentencesNokia=[]
 
 #initialise datasets and dictionaries
 readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia)
-
-print(tagDictionary)
 
 pWordPos={} # p(W|Positive)
 pWordNeg={} # p(W|Negative)
@@ -496,22 +560,22 @@ else:
 
 #-----------------------------MAIN------------------------------------------------------
 
-
+testLexicalCompositionalApproach(sentencesNokia, "Nokia  (Test Data, Compositional-Based)\t")
 
 parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")  # this sets up the parser
-text = input()
+#text = input()
 
-print("parsing the sentence...")
-sample = list(parser.raw_parse(text))  # test some functions with an input
+#print("parsing the sentence...")
+#sample = list(parser.raw_parse(text))  # test some functions with an input
 
-prettyprint(sample)
-#traverse(sample)
-tagged = tagtree(sample)
-#print(tagged)
-testSententce(text)
-bubbleResult = bubbleSentiment(sample)
-print("bubble result:")
-print(bubbleResult)
+# prettyprint(sample)
+# #traverse(sample)
+# tagged = tagtree(sample)
+# print(tagged)
+# testSententce(text)
+# bubbleResult = bubbleSentiment(sample)
+# print("bubble result:")
+# print(bubbleResult)
 
 
 #  open the TrainingSentences  DONE
