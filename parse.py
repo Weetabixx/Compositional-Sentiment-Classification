@@ -38,21 +38,12 @@ def bubbleSentiment(tree):
 	for subtree in tree:
 		if type(subtree) == Tree:  # if not a leaf
 			sentimenttacticPair = bubbleSentiment(subtree)
-			sentimentIn = sentimenttacticPair[0]
-			tactic = sentimenttacticPair[1]
-			if sentimentIn == 100:  # if a leaf was returned, calculate its sentiment and its combineTactic
-				print("a leaf was returned")
-				tag = str(subtree.label())
-				taggedW = tactic + "__" + tag
-				calculatedPair = calculateSentiment(taggedW)
-				return calculatedPair
-			else:  # combine all of the constituents if there is a combination to be done
-				childSentimentTactics.append(sentimenttacticPair)
-		else:  # if leaf node, return leaf and indicate its a leaf
+			childSentimentTactics.append(sentimenttacticPair)
+		else:  # if leaf node, return leaf and sentiment tactic pair
 			tag = tree.label()
 			taggedW = subtree + "__" + tag
 			print("leaf is:" + taggedW)
-			calculatedPair = calculateSentiment(taggedW)
+			calculatedPair = lexiSentiment(taggedW)
 			childSentimentTactics.append(calculatedPair)
 	if len(childSentimentTactics) == 1: # if there was only one child just bubble that up
 		print("only one child, " + str(childSentimentTactics))
@@ -116,16 +107,32 @@ def readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia):
 	with open('precompnokiaparsetrees.pkl', 'rb') as f:  # open precomputed parse trees
 		posNokiaTrees, negNokiaTrees = pickle.load(f)
 
-	posDictionary = open('positive-words.txt', 'r', encoding="ISO-8859-1")
+	posDictionary = open('opinion-lexicon-English/positive-words.txt', 'r', encoding="ISO-8859-1")
 	posWordList = re.findall(r"[a-z\-]+", posDictionary.read())
 
-	negDictionary = open('negative-words.txt', 'r', encoding="ISO-8859-1")
+	negDictionary = open('opinion-lexicon-English/negative-words.txt', 'r', encoding="ISO-8859-1")
 	negWordList = re.findall(r"[a-z\-]+", negDictionary.read())
+
+	revDictionary = open('reverse.txt', 'r', encoding="ISO-8859-1")
+	revWordList = re.findall(r"[a-z\-']+", revDictionary.read())
+
+	revPosDictionary = open('reversePos.txt', 'r', encoding="ISO-8859-1")
+	revPosWordList = re.findall(r"[a-z\-]+", revPosDictionary.read())
+
+	revNegDictionary = open('reverseNeg.txt', 'r', encoding="ISO-8859-1")
+	revNegWordList = re.findall(r"[a-z\-]+", revNegDictionary.read())
 
 	for i in posWordList:
 	    sentimentDictionary[i] = 1
 	for i in negWordList:
 	    sentimentDictionary[i] = -1
+
+	for i in revWordList:
+		tagDictionary[i] = "R"
+	for i in revPosWordList:
+		tagDictionary[i] = "RP"
+	for i in revNegWordList:
+		tagDictionary[i] = "RN"
 
 	#create Training and Test Datsets:
 	#We want to test on sentences we haven't trained on, to see how well the model generalses to previously unseen sentences
@@ -412,6 +419,20 @@ def calculateSentiment(taggedWord):
 
 #-----------------------------Lexical aproach------------------------------------------
 
+def lexiSentiment(taggedWord):  # returns pair of -1, 0 or 1 and "D" or "R" for sentiment reversers
+	word = taggedWord.split("__")[0]
+	if word in sentimentDictionary:
+		score = sentimentDictionary[word]
+	else:
+		score = 0
+
+	tag = "D"
+	if word in tagDictionary:
+		tag = tagDictionary[word]
+
+	return(score, tag)
+
+
 def testSententce(sentence):
 	Words = re.findall(r"[\w']+", sentence)
 	score=0
@@ -424,12 +445,15 @@ def testSententce(sentence):
 #----------------------------VariableInitialisations-----------------------------------
 
 sentimentDictionary={} # {} initialises a dictionary [hash function]
+tagDictionary={}
 sentencesTrain=[]
 sentencesTest=[]
 sentencesNokia=[]
 
 #initialise datasets and dictionaries
 readFiles(sentimentDictionary,sentencesTrain,sentencesTest,sentencesNokia)
+
+print(tagDictionary)
 
 pWordPos={} # p(W|Positive)
 pWordNeg={} # p(W|Negative)
